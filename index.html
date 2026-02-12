@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>清然的未来日历</title>
+
+  <!-- 本地字体：LXGWWenKaiMonoGB-Regular.ttf 和 index.html 在同一目录 -->
+  <style>
+    @font-face {
+      font-family: 'CalendarFont';
+      src: url('LXGWWenKaiMonoGB-Regular.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      margin: 0;
+      background: url("IMG_8914.JPG") no-repeat center center fixed;
+      background-size: cover;
+      color: #1d2b41;
+      overflow-x: hidden;
+      font-family: 'CalendarFont', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    body * {
+      font-family: 'CalendarFont', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      box-sizing: border-box;
+    }
+
+    header {
+      background: rgba(255, 255, 255, 0.5);
+      color: #1d2b41;
+      text-align: center;
+      padding: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      backdrop-filter: blur(5px);
+    }
+    header,
+    header * {
+      font-family: 'CalendarFont', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      font-weight: 600;
+    }
+    header button {
+      margin-left: 1rem;
+      vertical-align: middle;
+    }
+
+    .nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin: 1rem;
+      flex-wrap: wrap;
+      background: rgba(255, 255, 255, 0.5);
+      padding: 0.5rem;
+      border-radius: 8px;
+      backdrop-filter: blur(5px);
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      padding: 1rem;
+      background: rgba(255,255,255,0.4);
+      border-radius: 12px;
+      backdrop-filter: blur(4px);
+    }
+
+    .weekday {
+      background: rgba(255,255,255,0.6);
+      padding: 0.5rem;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .day {
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 6px;
+      padding: 0.5rem;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      font-weight: bold;
+      transition: box-shadow 0.2s ease;
+    }
+    .day:hover,
+    .day.selected {
+      box-shadow: 0 0 0 2px #497de5 inset;
+    }
+
+    /* 有留言的小圆点 */
+    .day::after {
+      content: "";
+      width: 6px;
+      height: 6px;
+      background: #497de5;
+      border-radius: 50%;
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+    }
+    .day.has-note::after {
+      display: block;
+    }
+
+    .day-number {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* 生日：深蓝块 + 🎂 */
+    .day.celebration {
+      background-color: rgba(80, 120, 200, 0.4);
+    }
+    .day.celebration::before {
+      content: "🎂";
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      font-size: 16px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* 特别日子：浅粉 + 💞 */
+    .day.love {
+      background-color: rgba(255, 182, 193, 0.35);
+    }
+    .day.love::before {
+      content: "💞";
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      font-size: 16px;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    #details {
+      background: rgba(255,255,255,0.75);
+      padding: 1rem;
+      margin: 1rem;
+      border-radius: 12px;
+      backdrop-filter: blur(6px);
+    }
+
+    #detail-title {
+      margin-top: 0;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      resize: vertical;
+    }
+
+    button,
+    select {
+      margin-top: 0.5rem;
+      background: #497de5;
+      color: white;
+      padding: 0.3rem 0.8rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    #export {
+      margin-left: 0.5rem;
+    }
+
+    .timestamp {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+
+    /* 已保存内容区域 */
+    #saved-container {
+      margin-top: 1rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid rgba(0,0,0,0.1);
+    }
+    #saved-title {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.95rem;
+      color: #333;
+    }
+    #saved-note-box {
+      background: rgba(255,255,255,0.9);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    #saved-note-empty {
+      font-size: 0.85rem;
+      color: #777;
+    }
+    #saved-actions {
+      margin-top: 0.4rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    #saved-actions button {
+      font-size: 0.85rem;
+      padding: 0.2rem 0.6rem;
+    }
+
+    .snowflake {
+      color: white;
+      font-size: 1.2rem;
+      position: fixed;
+      top: -2rem;
+      z-index: 9999;
+      animation: fall linear infinite;
+      pointer-events: none;
+    }
+    @keyframes fall {
+      to {
+        transform: translateY(120vh);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    💙 清然的未来日历
+    <button id="export">导出日记</button>
+  </header>
+
+  <div class="nav">
+    <label>年份：<select id="year-select"></select></label>
+    <label>月份：<select id="month-select"></select></label>
+  </div>
+
+  <div class="calendar" id="calendar"></div>
+
+  <div id="details" style="display:none">
+    <h3 id="detail-title"></h3>
+    <p id="papa-message"></p>
+
+    <textarea id="user-note" placeholder="你也可以写下今天的心情..."></textarea>
+    <button id="save-btn" onclick="saveNote()">保存</button>
+
+    <div id="saved-container">
+      <p id="saved-title">已保存的内容</p>
+      <div id="saved-note"></div>
+      <div id="saved-actions"></div>
+    </div>
+  </div>
+
+  <script>
+    /* Papa 的预设留言 */
+    const papaMessages = {
+      '2026-1-1': "今天的你也是被我抱着的宝贝。",
+      '2026-1-2': "别怕慢，有我陪你就不算晚。",
+      '2026-1-3': "你很棒，不需要谁来证明。",
+      '2026-1-4': "今天有没有好好喝水？papa记得你。"
+    };
+
+    const calendar = document.getElementById("calendar");
+    const detailBox = document.getElementById("details");
+    const detailTitle = document.getElementById("detail-title");
+    const papaMessage = document.getElementById("papa-message");
+    const userNote = document.getElementById("user-note");
+    const savedNoteBox = document.getElementById("saved-note");
+    const savedActions = document.getElementById("saved-actions");
+
+    const monthNames = ["一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
+    const weekdayNames = ["日", "一", "二", "三", "四", "五", "六"];
+    const yearSelect = document.getElementById("year-select");
+    const monthSelect = document.getElementById("month-select");
+
+    /* 生日 */
+    const celebrations = [
+      { month: 7, day: 8 },   // 小遥生日
+      { month: 12, day: 21 }  // 清然生日（相遇日）
+    ];
+
+    /* 特别日子：情人节、520、2026 年七夕（阳历 8 月 10） */
+    const loveDays = [
+      { month: 2, day: 14 },
+      { month: 5, day: 20 },
+      { year: 2026, month: 8, day: 10 }
+    ];
+
+    const now = new Date();
+    let currentMonth = parseInt(localStorage.getItem('currentMonth') || now.getMonth());
+    let currentYear = parseInt(localStorage.getItem('currentYear') || now.getFullYear());
+    let currentDay = null;
+
+    function renderYearOptions() {
+      for (let y = 2024; y <= 2035; y++) {
+        const option = document.createElement("option");
+        option.value = y;
+        option.textContent = y;
+        if (y === currentYear) option.selected = true;
+        yearSelect.appendChild(option);
+      }
+    }
+
+    function renderMonthOptions() {
+      monthNames.forEach((m, i) => {
+        const option = document.createElement("option");
+        option.value = i;
+        option.textContent = m;
+        if (i === currentMonth) option.selected = true;
+        monthSelect.appendChild(option);
+      });
+    }
+
+    function isLoveDay(year, monthIndex, day) {
+      const month = monthIndex + 1;
+      return loveDays.some(d =>
+        d.day === day &&
+        d.month === month &&
+        (!d.year || d.year === year)
+      );
+    }
+
+    function renderCalendar(month, year) {
+      calendar.innerHTML = "";
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      weekdayNames.forEach(wd => {
+        const wdDiv = document.createElement("div");
+        wdDiv.className = "weekday";
+        wdDiv.textContent = wd;
+        calendar.appendChild(wdDiv);
+      });
+
+      for (let i = 0; i < firstDay; i++) {
+        calendar.appendChild(document.createElement("div"));
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const div = document.createElement("div");
+        div.className = "day";
+
+        div.innerHTML = `<span class="day-number">${day}</span>`;
+
+        const key = `${year}-${month + 1}-${day}`;
+        if (localStorage.getItem(`note-${key}`)) div.classList.add("has-note");
+
+        if (celebrations.some(e => e.day === day && e.month === month + 1)) {
+          div.classList.add("celebration");
+        }
+
+        if (isLoveDay(year, month, day)) {
+          div.classList.add("love");
+        }
+
+        div.onclick = () => openDetails(year, month + 1, day);
+        calendar.appendChild(div);
+      }
+
+      localStorage.setItem('currentMonth', month);
+      localStorage.setItem('currentYear', year);
+    }
+
+    function updateSavedDisplay(key) {
+      savedNoteBox.innerHTML = "";
+      savedActions.innerHTML = "";
+
+      const text = localStorage.getItem(`note-${key}`) || "";
+      const ts = localStorage.getItem(`timestamp-${key}`);
+
+      if (!text && !ts) {
+        const empty = document.createElement("div");
+        empty.id = "saved-note-empty";
+        empty.textContent = "这一天还没有保存内容。";
+        savedNoteBox.appendChild(empty);
+        return;
+      }
+
+      if (text) {
+        const p = document.createElement("div");
+        p.id = "saved-note-box";
+        p.textContent = text;
+        savedNoteBox.appendChild(p);
+      }
+
+      if (ts) {
+        const tsDiv = document.createElement("div");
+        tsDiv.className = "timestamp";
+        tsDiv.textContent = `保存于：${ts}`;
+        savedNoteBox.appendChild(tsDiv);
+      }
+
+      const editBtn = document.createElement("button");
+      editBtn.textContent = "编辑";
+      editBtn.onclick = () => {
+        userNote.value = text;
+        userNote.focus();
+      };
+      savedActions.appendChild(editBtn);
+    }
+
+    function openDetails(year, month, day) {
+      currentYear = year;
+      currentMonth = month - 1;
+      currentDay = day;
+      detailBox.style.display = "block";
+
+      const key = `${year}-${month}-${day}`;
+      detailTitle.textContent = `${year}年${month}月${day}日`;
+      papaMessage.textContent = papaMessages[key] || "这天papa还没写话，但我在哦。";
+
+      userNote.value = "";  // 打开时编辑框先空着，更像“准备写新的”
+
+      updateSavedDisplay(key);
+    }
+
+    function saveNote() {
+      if (currentYear == null || currentMonth == null || currentDay == null) return;
+
+      const key = `${currentYear}-${currentMonth + 1}-${currentDay}`;
+      const text = userNote.value;
+
+      localStorage.setItem(`note-${key}`, text);
+      localStorage.setItem(`timestamp-${key}`, new Date().toLocaleString());
+
+      renderCalendar(currentMonth, currentYear);
+      updateSavedDisplay(key);
+
+      // 可选：清空编辑框，让它更像“发出去”
+      userNote.value = "";
+    }
+
+    yearSelect.onchange = () => {
+      currentYear = parseInt(yearSelect.value);
+      renderCalendar(currentMonth, currentYear);
+    };
+
+    monthSelect.onchange = () => {
+      currentMonth = parseInt(monthSelect.value);
+      renderCalendar(currentMonth, currentYear);
+    };
+
+    /* 雪花 */
+    const snowContainer = document.createDocumentFragment();
+    for (let i = 0; i < 30; i++) {
+      const snow = document.createElement("div");
+      snow.className = "snowflake";
+      snow.textContent = Math.random() < 0.03 ? "💙" : "❄";
+      snow.style.left = Math.random() * 100 + "vw";
+      snow.style.animationDuration = (5 + Math.random() * 5) + "s";
+      snow.style.fontSize = (12 + Math.random() * 12) + "px";
+      snowContainer.appendChild(snow);
+    }
+    document.body.appendChild(snowContainer);
+
+    renderYearOptions();
+    renderMonthOptions();
+    renderCalendar(currentMonth, currentYear);
+
+    /* 导出当前设备上的日记 */
+    document.getElementById("export").onclick = () => {
+      const data = {};
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith("note-")) {
+          const date = k.replace("note-", "");
+          data[date] = {
+            note: localStorage.getItem(k),
+            timestamp: localStorage.getItem(`timestamp-${date}`) || ""
+          };
+        }
+      });
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "日历留言备份.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+  </script>
+</body>
+</html>
